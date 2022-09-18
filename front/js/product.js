@@ -1,48 +1,185 @@
+// Récupération de l'id du produit via l' URL
+//la variable params récupère l'url de la page   
+const params = new URLSearchParams(document.location.search); 
+// la variable id va récupérer la valeur du paramètre _id
+const id = params.get("_id");
+console.log(id); 
+// Récupération des produits de l'api et traitement des données (voir script.js)
+fetch("http://localhost:3000/api/products")
+.then((res) => res.json())
+.then((objetProduits) => {
+    products(objetProduits);
+    // execution de la fontion products
 
-
-let urlcourante = document.location.href;
-let url = new URL(urlcourante);
-let id = url.searchParams.get("id");
-console.log(id);
-let url_api = "http://localhost:3000/api/products/"+id
-
-fetch(url_api)
-.then(function (res) {
-    if (res.ok) {
-        return res.json();
-    }
 })
-.then(function(product  ) {
-    console.log(product);
-    let id = product._id;
-    let nom = product.name;
-    let prix = product.price;
-    let color = product.colors;
-    let description = product.description;
-    let altTxt = product.altTxt
-    let imageUrl = product.imageUrl
-
-    let id_ele = document.getElementById('_id');
-    id_ele.innerHTML = id
-    
-    let altTxt_ele = document.getElementById('altTxt');
-    altTxt_ele.innerHTML = altTxt
-    
-    let imageUrl_ele = document.getElementById('imageUrl');
-    imageUrl_ele.innerHTML = imageUrl
-
-    let title_ele = document.getElementById('title');
-    title_ele.innerHTML = nom
-    
-    let prix_ele = document.getElementById('price');
-    prix_ele.innerHTML = prix
-    
-    let description_ele = document.getElementById('description');
-    description_ele.innerHTML = description
-    
-    let color_ele = document.getElementById('colors');
-    color_ele.innerHTML = color
-})
-.catch(function (err) {
-    // Une erreur est survenue
+.catch((err) => {
+    document.querySelector(".item").innerHTML = "<h1>erreur 404</h1>";
+    console.log("erreur 404, sur ressource api: " + err);
 });
+// Création d'objet articleC
+let articleC = {};
+// id du produit
+articleC._id = id;
+
+// fonction d'affichage du produit de l'api
+function products(produit) {
+    // déclaration des variables pointage des éléments
+    let imageAlt = document.querySelector("article div.item__img");
+    let titre = document.querySelector("#title");
+    let prix = document.querySelector("#price");
+    let description = document.querySelector("#description");
+    let couleurOption = document.querySelector("#colors");
+    // boucle for pour chercher un indice
+    for (let choix of produit) {
+        //si id (définit par l'url) est identique à un _id d'un des produits du tableau, on récupère son indice de tableau qui sert pour les éléments produit à ajouter
+        if (id === choix._id) {
+            //ajout des éléments de manière dynamique
+            imageAlt.innerHTML = `<img src="${choix.imageUrl}" alt="${choix.altTxt}">`;
+            titre.textContent = `${choix.name}`;
+            prix.textContent = `${choix.price}`;
+            description.textContent = `${choix.description}`;
+            // boucle pour chercher les couleurs pour chaque produit en fonction de sa clef/valeur (la logique: tableau dans un tableau = boucle dans boucle)
+            for (let couleur of choix.colors) {
+                // ajout des balises d'option couleur avec leur valeur
+                couleurOption.innerHTML += `<option value="${couleur}">${couleur}</option>`;
+            }
+        }
+    }
+    console.log("affichage effectué");
+}
+
+
+
+// choix couleur dynamique
+
+let choicecolor = document.querySelector("#colors");
+// ce qu'il se passe dans #colors
+
+choicecolor.addEventListener("input", (ec) => {
+    let couleurProduit;
+    // on récupère la valeur de la cible de l'évenement dans couleur
+    couleurProduit = ec.target.value;
+    // on ajoute la couleur à l'objet panierClient
+    articleC.couleur = couleurProduit;
+    //ça reset la couleur et le texte du bouton si il y a une action sur les inputs dans le cas d'une autre commande du même produit
+    document.querySelector("#addToCart").style.color = "white";
+    document.querySelector("#addToCart").textContent = "Ajouter au panier";
+    console.log(couleurProduit);
+});
+// choix quantité dynamique
+
+// définition des variables
+let choixQuantité = document.querySelector('input[id="quantity"]');
+let quantitéProduit;
+//  ce qu'il se passe dans input[name="itemQuantity"]
+choixQuantité.addEventListener("input", (eq) => {
+    // on récupère la valeur de la cible de l'évenement dans couleur
+    quantitéProduit = eq.target.value;
+    // on ajoute la quantité à l'objet panierClient
+    articleC.quantité = quantitéProduit;
+    //ça reset la couleur et le texte du bouton si il y a une action sur les inputs dans le cas d'une autre commande du même produit
+    document.querySelector("#addToCart").style.color = "white";
+    document.querySelector("#addToCart").textContent = "Ajouter au panier";
+    console.log(quantitéProduit);
+});
+// conditions de validation du clic via le bouton ajouter au panier
+
+// déclaration variable
+let choixProduit = document.querySelector("#addToCart");
+//  ce qu'il se passe sur le bouton #addToCart pour faire l'action :
+choixProduit.addEventListener("click", () => {
+    //conditions de validation du bouton ajouter au panier
+    if (
+        // les valeurs sont créées dynamiquement au click, et à l'arrivée sur la page, tant qu'il n'y a pas d'action sur la couleur et/ou la quantité, c'est 2 valeurs sont undefined.
+        articleC.quantité < 1 ||
+        articleC.quantité > 100 ||
+        articleC.quantité === undefined ||
+        articleC.couleur === "" ||
+        articleC.couleur === undefined
+        ) {
+            // alerte
+            alert("Pour valider le choix de cet article, veuillez renseigner une couleur, et une quantité valide entre 1 et 100");
+            // si ça passe le controle
+        } else {
+            // joue panier
+            Panier();
+            console.log("clic effectué");
+            //effet visuel d'ajout de produit
+            document.querySelector("#addToCart").style.color = "rgb(0, 205, 205)";
+            document.querySelector("#addToCart").textContent = "Produit au panier ";
+        }
+    });
+    // déclaration tableau qui sera le 1er, unique et destiné à initialiser le panier
+    let choixProduitClient = [];
+    // déclaration tableau qui sera ce qu'on récupère du local storage appelé panierStocké et qu'on convertira en JSon (importance dans Panier())
+    let produitsSave = [];
+    // déclaration tableau qui sera un choix d'article/couleur non effectué donc non présent dans le panierStocké
+    let produitsTemp = [];
+    // déclaration tableau qui sera la concaténation des produitsSave et de produitsTemp
+    let produitsPush = [];
+
+    // fonction ajoutFirstProduit qui ajoute l'article choisi dans le tableau vierge
+
+    function ajoutFirstProduit() {
+        console.log(produitsSave);
+        //si produitsSave est null c'est qu'il n'a pas été créé
+        if (produitsSave === null) {
+            // pousse le produit choisit dans choixProduitClient
+            choixProduitClient.push(articleC);
+            console.log(articleC);
+            // dernière commande, envoit choixProduitClient dans le local storage sous le nom de panierStocké de manière JSON stringifié
+            return (localStorage.panierStocké = JSON.stringify(choixProduitClient));
+        }
+    }
+    
+    // fonction ajoutProduit qui ajoute l'article dans le tableau non vierge et fait un tri
+    function ajoutProduit() {
+        // vide/initialise produitsPush pour recevoir les nouvelles données
+        produitsPush = [];
+        // pousse le produit choisit dans produitsTemp
+        produitsTemp.push(articleC);
+        // combine produitsTemp et/dans produitsSave, ça s'appele produitsPush
+        // autre manière de faire: produitsPush = produitsSave.concat(produitsTemp);
+        produitsPush = [...produitsSave, ...produitsTemp];
+        //fonction pour trier et classer les id puis les couleurs 
+        produitsPush.sort(function triage(a, b) {
+            if (a._id < b._id) return -1;
+            if (a._id > b._id) return 1;
+            if (a._id = b._id){
+                if (a.couleur < b.couleur) return -1;
+                if (a.couleur > b.couleur) return 1;
+            }
+            return 0;
+        });
+        // initialise produitsTemp maintenant qu'il a été utilisé
+        produitsTemp = [];
+        // dernière commande, envoit produitsPush dans le local storage sous le nom de panierStocké de manière JSON stringifié
+        return (localStorage.panierStocké = JSON.stringify(produitsPush));
+    }
+    // fonction Panier qui ajuste la quantité si le produit est déja dans le tableau, sinon le rajoute si tableau il y a, ou créait le tableau avec un premier article choisi 
+    
+    function Panier() {
+        // variable qui sera ce qu'on récupère du local storage appelé panierStocké et qu'on a convertit en JSon
+        produitsSave = JSON.parse(localStorage.getItem("panierStocké"));
+        // si produitSave existe (si des articles ont déja été choisis et enregistrés par le client)
+        if (produitsSave) {
+            for (let choix of produitsSave) {
+                //comparateur d'égalité des articles actuellement choisis et ceux déja choisis
+                if (choix._id === id && choix.couleur === articleC.couleur) {
+                    //information client
+                    alert("RAPPEL: Vous aviez déja ajouter cet article.");
+                    // on modifie la quantité d'un produit existant dans le panier du localstorage
+                    //additionQuantité qui est la valeur de l'addition de l'ancienne quantité parsée et de la nouvelle parsée pour le même produit
+                    let additionQuantité = parseInt(choix.quantité) + parseInt(quantitéProduit);
+                    // on convertit en JSON le résultat précédent dans la zone voulue
+                    choix.quantité = JSON.stringify(additionQuantité);
+                    // dernière commande, on renvoit un nouveau panierStocké dans le localStorage
+                    return (localStorage.panierStocké = JSON.stringify(produitsSave));
+                }
+            }
+            // appel fonction ajoutProduit si la boucle au dessus ne retourne rien donc n'a pas d'égalité
+            return ajoutProduit();
+        }
+        // appel fonction ajoutFirstProduit si produitsSave n'existe pas
+        return ajoutFirstProduit();
+    }
